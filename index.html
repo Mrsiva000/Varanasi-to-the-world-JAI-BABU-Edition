@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VĀRANĀSI TO THE WORLD — 6-Realm 3D Visual Critic & Lord Shiva Nandi Viewport</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030611;
+            color: #f4e8c1;
+            font-family: 'Inter', sans-serif;
+        }
+        .cinzel {
+            font-family: 'Cinzel', serif;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .hud-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .hud-interactive {
+            pointer-events: auto;
+        }
+        .vfx-panel {
+            background: rgba(6, 10, 19, 0.84);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.30);
+            box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.8), inset 0 0 16px rgba(245, 158, 11, 0.07);
+        }
+        .vfx-btn {
+            transition: all 0.18s ease;
+            border: 1px solid rgba(245, 158, 11, 0.24);
+            background: rgba(15, 23, 42, 0.58);
+        }
+        .vfx-btn:hover {
+            border-color: rgba(245, 158, 11, 0.82);
+            background: rgba(245, 158, 11, 0.18);
+            color: #fde68a;
+        }
+        .vfx-btn.active {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.40), rgba(217, 119, 6, 0.22));
+            border-color: #f59e0b;
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+        }
+        .vfx-btn-cyan.active {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.38), rgba(14, 116, 144, 0.22));
+            border-color: #22d3ee;
+            color: #ecfeff;
+            box-shadow: 0 0 14px rgba(34, 211, 238, 0.45);
+        }
+        .gold-glow {
+            text-shadow: 0 0 16px rgba(245, 158, 11, 0.78);
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.14);
+            height: 6px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #f59e0b;
+            cursor: pointer;
+            border: 2px solid #05070c;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+        .reticle-corner {
+            position: fixed;
+            width: 18px;
+            height: 18px;
+            border-color: rgba(245, 158, 11, 0.35);
+            pointer-events: none;
+            z-index: 15;
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D WebGL Viewport Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Safe Frame Corner Reticles -->
+    <div class="reticle-corner top-3 left-3 border-t-2 border-l-2"></div>
+    <div class="reticle-corner top-3 right-3 border-t-2 border-r-2"></div>
+    <div class="reticle-corner bottom-3 left-3 border-b-2 border-l-2"></div>
+    <div class="reticle-corner bottom-3 right-3 border-b-2 border-r-2"></div>
+
+    <!-- Floating Restore Pill when Clean Video Mode is Active -->
+    <button id="unhide-btn" onclick="toggleHUD()" 
+        class="fixed top-4 right-4 z-50 hidden px-3.5 py-1.5 rounded-full text-xs mono font-bold tracking-wider uppercase bg-black/80 text-amber-400 border border-amber-500/50 hover:bg-amber-500/20 transition shadow-lg">
+        Show Studio HUD (H)
+    </button>
+
+    <!-- MAIN 3D VISUAL CRITIC & 6-REALM STUDIO HUD -->
+    <div id="hud-root" class="hud-layer flex flex-col justify-between p-3.5 md:p-5">
+
+        <!-- TOP BAR: Title Banner, Sky Mode Switcher & Telemetry -->
+        <header class="flex flex-wrap items-start justify-between gap-3">
+            <!-- Left Asset Title -->
+            <div class="vfx-panel hud-interactive px-4 py-3 rounded-xl max-w-2xl">
+                <div class="flex items-center gap-2 text-[10px] mono uppercase tracking-widest text-cyan-400 font-bold">
+                    <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                    <span>SS RAJAMOULI'S #GLOBETROTTER / #TIMETROTTER • 6-REALM 3D CRITIC VIEWPORT</span>
+                </div>
+                <h1 class="cinzel text-lg sm:text-2xl md:text-3xl font-black tracking-wider text-amber-400 gold-glow mt-0.5">
+                    VĀRANĀSI TO THE WORLD <span class="text-white/90 text-xs sm:text-sm font-bold">| LORD SHIVA & NANDI • JAI BABU</span>
+                </h1>
+                <div class="flex flex-wrap items-center gap-2 text-[11px] text-amber-100/80 mt-1 mono">
+                    <span>ACTIVE REALM:</span>
+                    <span id="zone-indicator" class="text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
+                        05. VAARANAASI — LORD SHIVA RIDING GALLOPING NANDI BULL
+                    </span>
+                </div>
+            </div>
+
+            <!-- Right Sky Mode Switcher + Telemetry + Clean Video Button -->
+            <div class="vfx-panel hud-interactive px-4 py-2.5 rounded-xl flex flex-wrap items-center gap-4 mono text-xs">
+                <!-- 3-Way Atmosphere / Lighting Switcher (Default: Night View) -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-[9px] uppercase tracking-widest text-cyan-300 font-bold">Atmosphere / Lighting</span>
+                    <div class="flex items-center gap-1.5">
+                        <button id="sky-night" onclick="setSkyMode('night')" class="vfx-btn vfx-btn-cyan active px-2.5 py-1 rounded text-[11px] font-bold">
+                            🌙 Night View
+                        </button>
+                        <button id="sky-lanka" onclick="setSkyMode('lanka')" class="vfx-btn vfx-btn-cyan px-2.5 py-1 rounded text-[11px] font-bold">
+                            🌅 Lanka Eclipse
+                        </button>
+                        <button id="sky-day" onclick="setSkyMode('day')" class="vfx-btn vfx-btn-cyan px-2.5 py-1 rounded text-[11px] font-bold">
+                            ☀️ Daylight
+                        </button>
+                    </div>
+                </div>
+
+                <div class="h-9 w-px bg-amber-500/25 hidden sm:block"></div>
+
+                <!-- Live Geometry & Shader Telemetry -->
+                <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+                    <span class="text-slate-400">VERTICES:</span>
+                    <span id="stat-verts" class="text-amber-300 font-bold text-right">0</span>
+                    <span class="text-slate-400">TRIANGLES:</span>
+                    <span id="stat-tris" class="text-amber-300 font-bold text-right">0</span>
+                    <span class="text-slate-400">PASS:</span>
+                    <span id="stat-shaders" class="text-cyan-300 font-bold text-right">PBR_NIGHT</span>
+                    <span class="text-slate-400">FPS:</span>
+                    <span id="stat-fps" class="text-emerald-400 font-bold text-right">60</span>
+                </div>
+
+                <button onclick="toggleHUD()" title="Press H key anytime to hide all controls for clean Twitter video recording"
+                    class="px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/60 text-amber-300 font-bold text-[11px] tracking-wider uppercase transition">
+                    🎥 Hide UI (H)
+                </button>
+            </div>
+        </header>
+
+        <!-- MIDDLE SIDEBARS: Render Passes, Nandi Motion Toggle & 6-Realm Bookmarks -->
+        <div class="flex items-center justify-between my-auto pointer-events-none gap-2">
+            <!-- Left Sidebar: 3D Critic Shader Passes & Nandi Motion Toggle -->
+            <aside class="vfx-panel hud-interactive p-3 rounded-xl flex flex-col gap-1.5 w-52">
+                <div class="text-[10px] mono uppercase tracking-widest text-amber-400/90 font-bold px-1">
+                    1. Critic Shader Pass
+                </div>
+                <button onclick="setRenderMode('pbr')" id="mode-pbr" class="vfx-btn active px-2.5 py-1.5 rounded-lg text-[11px] text-left font-semibold flex items-center justify-between">
+                    <span>1. Textured Lit</span><span class="text-[9px] mono opacity-75">PBR</span>
+                </button>
+                <button onclick="setRenderMode('clay')" id="mode-clay" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left font-semibold flex items-center justify-between">
+                    <span>2. Clay Sculpt</span><span class="text-[9px] mono opacity-75">MAT</span>
+                </button>
+                <button onclick="setRenderMode('hybrid')" id="mode-hybrid" class="vfx-btn vfx-btn-cyan px-2.5 py-1.5 rounded-lg text-[11px] text-left font-semibold flex items-center justify-between">
+                    <span>3. Critic Wire+</span><span class="text-[9px] mono opacity-75">VFX</span>
+                </button>
+                <button onclick="setRenderMode('wire')" id="mode-wire" class="vfx-btn vfx-btn-cyan px-2.5 py-1.5 rounded-lg text-[11px] text-left font-semibold flex items-center justify-between">
+                    <span>4. Pure Wireframe</span><span class="text-[9px] mono opacity-75">GEO</span>
+                </button>
+
+                <div class="border-t border-amber-500/25 my-1 pt-1.5">
+                    <div class="text-[10px] mono uppercase tracking-widest text-cyan-300 font-bold px-1 mb-1">
+                        Shiva & Nandi Motion
+                    </div>
+                    <button id="nandi-move-btn" onclick="toggleNandiChargeMode()"
+                        class="vfx-btn active w-full px-2.5 py-2 rounded-lg text-[11px] mono font-bold text-amber-300 border-amber-400/50 text-left">
+                        🐂 Mode: Forward Charge
+                    </button>
+                </div>
+
+                <button onclick="toggleSplineHelper()" id="btn-spline" class="vfx-btn w-full px-2.5 py-1 rounded-lg text-[10px] mono text-center">
+                    Cam Spline Path: OFF
+                </button>
+            </aside>
+
+            <!-- Right Sidebar: All 6 Glimpse Realms Camera Bookmarks -->
+            <aside class="vfx-panel hud-interactive p-3 rounded-xl flex flex-col gap-1.5 w-60">
+                <div class="text-[10px] mono uppercase tracking-widest text-cyan-400 font-bold px-1">
+                    2. 6 Glimpse Realms Jump
+                </div>
+                <button onclick="jumpToZone(0)" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left truncate">
+                    ☄️ 01. Asteroid & Ross Ice Ship
+                </button>
+                <button onclick="jumpToZone(1)" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left truncate">
+                    🦁 02. Africa Amboseli & Kilimanjaro
+                </button>
+                <button onclick="jumpToZone(2)" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left truncate">
+                    🌺 03. Ugrabhatti Cave (Kalika Maa)
+                </button>
+                <button onclick="jumpToZone(3)" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left truncate text-emerald-300 border-emerald-500/40 font-semibold">
+                    🏹 04. Lanka Nagaram (Archer & Hanuman)
+                </button>
+                <button onclick="jumpToZone(4)" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left truncate text-cyan-300 border-cyan-500/40 font-semibold">
+                    🔱 05. Kashi & Shiva Riding Nandi
+                </button>
+                <button onclick="jumpToZone(5)" class="vfx-btn px-2.5 py-1.5 rounded-lg text-[11px] text-left truncate text-amber-300 font-bold border-amber-400/60">
+                    👑 06. VĀRANĀSI • JAI BABU Finale
+                </button>
+            </aside>
+        </div>
+
+        <!-- BOTTOM BAR: Flythrough Loop Controls, Quick Realm Pills & Timeline Scrubber -->
+        <footer class="vfx-panel hud-interactive px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="fly-btn" onclick="toggleFlythrough()"
+                    class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-black font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition flex items-center gap-1.5">
+                    <span id="fly-icon">⏸</span>
+                    <span id="fly-label">6-Realm Flythrough: ON</span>
+                </button>
+                <button onclick="jumpToZone(3)"
+                    class="px-3 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/50 text-emerald-300 font-bold text-xs uppercase tracking-wider transition">
+                    🏹 Lanka Shot
+                </button>
+                <button onclick="jumpToZone(4)"
+                    class="px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/50 text-cyan-300 font-bold text-xs uppercase tracking-wider transition">
+                    🔱 Shiva & Nandi
+                </button>
+                <button onclick="jumpToZone(5)"
+                    class="px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/60 text-amber-300 font-bold text-xs uppercase tracking-wider transition">
+                    🔥 JAI BABU Finale
+                </button>
+            </div>
+
+            <div class="flex-1 min-w-[200px] flex items-center gap-3 mono">
+                <span class="text-[10px] text-amber-300 font-bold whitespace-nowrap">TIMELINE</span>
+                <input id="timeline-slider" type="range" min="0" max="1000" value="720" class="w-full" oninput="scrubTimeline(this.value)" />
+                <span id="frame-counter" class="text-xs font-bold text-cyan-300 w-20 text-right">345/480f</span>
+            </div>
+
+            <div class="text-[10px] text-slate-400 hidden xl:block mono">
+                Drag: Orbit • Scroll: Zoom • Clean Video: Press <kbd class="px-1.5 py-0.5 bg-slate-800 text-amber-300 rounded border border-slate-600">H</kbd>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        // ============================================================================
+        // 1. SCENE, CAMERA & RENDERER (OPENS IN SACRED NIGHT VIEW BY DEFAULT)
+        // ============================================================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030611);
+        scene.fog = new THREE.FogExp2(0x050917, 0.0018);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 1600);
+        camera.position.set(18, 20, 72);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.3;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 460;
+        controls.minDistance = 8;
+        controls.target.set(0, 15, 44);
+
+        // Pause automatic flythrough when user manually orbits
+        renderer.domElement.addEventListener('pointerdown', () => {
+            if (isFlying) toggleFlythrough(false);
+        });
+
+        // ============================================================================
+        // 2. PROCEDURAL TEXTURES (Sandstone & Chiselled Golden Finale Monuments)
+        // ============================================================================
+        function createSandstoneTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#b68452';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let y = 0; y < 512; y += 4) {
+                const v = Math.sin(y * 0.1) * 14 + (Math.random() - 0.5) * 16;
+                ctx.fillStyle = `rgb(${182 + v}, ${132 + v * 0.8}, ${82 + v * 0.6})`;
+                ctx.fillRect(0, y, 512, 4);
+            }
+
+            ctx.strokeStyle = 'rgba(55, 34, 18, 0.45)';
+            ctx.lineWidth = 2;
+            for (let r = 0; r < 16; r++) {
+                const y = r * 32;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(512, y);
+                ctx.stroke();
+                const offset = (r % 2) * 32;
+                for (let c = 0; c <= 8; c++) {
+                    const x = (c * 64 + offset) % 512;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y + 32);
+                    ctx.stroke();
+                }
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 2);
+            return tex;
+        }
+
+        function createMonumentBannerTexture(titleText, subtitleText, isJaiBabu) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
+            bgGrad.addColorStop(0, '#140e08');
+            bgGrad.addColorStop(0.5, '#26180a');
+            bgGrad.addColorStop(1, '#0e0905');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, 2048, 512);
+
+            ctx.strokeStyle = isJaiBabu ? '#fbbf24' : '#38bdf8';
+            ctx.lineWidth = 14;
+            ctx.strokeRect(22, 22, 2004, 468);
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(42, 42, 1964, 428);
+
+            ctx.font = 'bold 44px "Cinzel", serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = isJaiBabu ? '#38bdf8' : '#fde68a';
+            ctx.shadowColor = isJaiBabu ? '#0284c7' : '#d97706';
+            ctx.shadowBlur = 16;
+            ctx.fillText(subtitleText, 1024, 130);
+
+            ctx.font = '900 172px "Cinzel", serif';
+            const textGrad = ctx.createLinearGradient(0, 160, 0, 410);
+            textGrad.addColorStop(0, '#fffbeb');
+            textGrad.addColorStop(0.45, '#fbbf24');
+            textGrad.addColorStop(0.85, '#d97706');
+            textGrad.addColorStop(1, '#78350f');
+            ctx.fillStyle = textGrad;
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 34;
+            ctx.fillText(titleText, 1024, 345);
+
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#fef3c7';
+            ctx.strokeText(titleText, 1024, 345);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        // ============================================================================
+        // 3. SHARED PBR MATERIALS & CRITIC OVERRIDE REGISTRY
+        // ============================================================================
+        const sandstoneTex = createSandstoneTexture();
+
+        const sandstoneMat = new THREE.MeshStandardMaterial({
+            map: sandstoneTex,
+            bumpMap: sandstoneTex,
+            bumpScale: 0.14,
+            roughness: 0.76,
+            metalness: 0.12
+        });
+        const darkStoneMat = new THREE.MeshStandardMaterial({
+            map: sandstoneTex,
+            color: 0x4a3525,
+            roughness: 0.85,
+            metalness: 0.15
+        });
+        const obsidianMat = new THREE.MeshStandardMaterial({
+            color: 0x111318,
+            roughness: 0.42,
+            metalness: 0.55
+        });
+        const goldMat = new THREE.MeshStandardMaterial({
+            color: 0xffc83b,
+            roughness: 0.22,
+            metalness: 0.92,
+            emissive: 0x5c3800,
+            emissiveIntensity: 0.4
+        });
+        const sacredWhiteMat = new THREE.MeshStandardMaterial({
+            color: 0xf8fafc,
+            roughness: 0.32,
+            metalness: 0.12,
+            emissive: 0x1e293b,
+            emissiveIntensity: 0.25
+        });
+        const shivaSkinMat = new THREE.MeshStandardMaterial({
+            color: 0x60a5fa,
+            roughness: 0.42,
+            metalness: 0.18,
+            emissive: 0x1d4ed8,
+            emissiveIntensity: 0.28
+        });
+        const tigerSkinMat = new THREE.MeshStandardMaterial({
+            color: 0xd97706,
+            roughness: 0.7,
+            metalness: 0.1
+        });
+        const saffronMat = new THREE.MeshStandardMaterial({
+            color: 0xff5500,
+            roughness: 0.45,
+            metalness: 0.1,
+            emissive: 0x9a3412,
+            emissiveIntensity: 0.65,
+            side: THREE.DoubleSide
+        });
+        const iceMat = new THREE.MeshStandardMaterial({
+            color: 0x67e8f9,
+            roughness: 0.15,
+            metalness: 0.35,
+            transparent: true,
+            opacity: 0.84,
+            emissive: 0x0891b2,
+            emissiveIntensity: 0.4
+        });
+        const silhouetteGoldMat = new THREE.MeshStandardMaterial({
+            color: 0x1c1206,
+            roughness: 0.6,
+            metalness: 0.3,
+            emissive: 0x92400e,
+            emissiveIntensity: 0.45
+        });
+        const clayMaterial = new THREE.MeshStandardMaterial({
+            color: 0xd6cfc7,
+            roughness: 0.62,
+            metalness: 0.06
+        });
+        const pureWireMaterial = new THREE.MeshBasicMaterial({
+            color: 0xf59e0b,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.72
+        });
+
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        const originalMaterials = new Map();
+        let totalVerts = 0;
+        let totalTris = 0;
+
+        function registerMesh(mesh, addWireClone = true) {
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            originalMaterials.set(mesh, mesh.material);
+
+            if (mesh.geometry && mesh.geometry.attributes && mesh.geometry.attributes.position) {
+                const vCount = mesh.geometry.attributes.position.count;
+                totalVerts += vCount;
+                totalTris += mesh.geometry.index ? (mesh.geometry.index.count / 3) : (vCount / 3);
+            }
+
+            if (addWireClone && mesh.geometry) {
+                const wireMat = new THREE.MeshBasicMaterial({
+                    color: 0x38bdf8,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.30
+                });
+                const wireClone = new THREE.Mesh(mesh.geometry, wireMat);
+                wireClone.visible = false;
+                mesh.add(wireClone);
+                mesh.userData.wireClone = wireClone;
+            }
+        }
+
+        // ============================================================================
+        // 4. LIGHTING RIG (Configured for Default Sacred Night View)
+        // ============================================================================
+        const ambientLight = new THREE.AmbientLight(0x1e2b4d, 1.15);
+        scene.add(ambientLight);
+
+        const mainDirLight = new THREE.DirectionalLight(0x8ab4f8, 2.2);
+        mainDirLight.position.set(90, 140, 80);
+        mainDirLight.castShadow = true;
+        mainDirLight.shadow.mapSize.width = 2048;
+        mainDirLight.shadow.mapSize.height = 2048;
+        const d = 180;
+        mainDirLight.shadow.camera.left = -d;
+        mainDirLight.shadow.camera.right = d;
+        mainDirLight.shadow.camera.top = d;
+        mainDirLight.shadow.camera.bottom = -d;
+        scene.add(mainDirLight);
+
+        const manikarnikaBeamLight = new THREE.PointLight(0x22d3ee, 11, 150);
+        manikarnikaBeamLight.position.set(0, 42, 12);
+        scene.add(manikarnikaBeamLight);
+
+        const shivaFireLight = new THREE.PointLight(0xff7700, 12, 110);
+        shivaFireLight.position.set(0, 22, 44);
+        scene.add(shivaFireLight);
+
+        const ugrabhattiCaveLight = new THREE.PointLight(0x10b981, 10, 95);
+        ugrabhattiCaveLight.position.set(-105, 24, 30);
+        scene.add(ugrabhattiCaveLight);
+
+        const kaliRedLight = new THREE.PointLight(0xef4444, 9, 70);
+        kaliRedLight.position.set(-105, 16, 30);
+        scene.add(kaliRedLight);
+
+        const lankaSunLight = new THREE.PointLight(0xfbbf24, 16, 170);
+        lankaSunLight.position.set(125, 48, 20);
+        scene.add(lankaSunLight);
+
+        // Full Moon Orb in Night Sky
+        const moonOrb = new THREE.Mesh(
+            new THREE.SphereGeometry(14, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xe0f2fe })
+        );
+        moonOrb.position.set(110, 155, -140);
+        scene.add(moonOrb);
+
+        // ============================================================================
+        // 5. BUILD ALL 6 ICONIC GLIMPSE REALMS
+        // ============================================================================
+
+        // --- Base Floor: Sacred Ganga River & Studio Critic Grid ---
+        const riverMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(460, 460, 48, 48),
+            new THREE.MeshStandardMaterial({
+                color: 0x041220,
+                roughness: 0.14,
+                metalness: 0.88,
+                emissive: 0x030c17,
+                emissiveIntensity: 0.45
+            })
+        );
+        riverMesh.rotation.x = -Math.PI / 2;
+        registerMesh(riverMesh, false);
+        worldGroup.add(riverMesh);
+
+        const studioGrid = new THREE.GridHelper(460, 92, 0xf59e0b, 0x1e293b);
+        studioGrid.position.y = 0.15;
+        studioGrid.material.transparent = true;
+        studioGrid.material.opacity = 0.32;
+        worldGroup.add(studioGrid);
+
+        // --- REALM 1: Asteroid Shambhavi (2027 CE) & Antarctica Ross Ice Shelf Ship ---
+        const asteroidGroup = new THREE.Group();
+        asteroidGroup.position.set(-85, 96, -85);
+
+        const astGeo = new THREE.DodecahedronGeometry(10.5, 2);
+        const posAttr = astGeo.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const vx = posAttr.getX(i), vy = posAttr.getY(i), vz = posAttr.getZ(i);
+            const n = 0.8 + 0.35 * Math.sin(vx * 1.4) * Math.cos(vy * 1.4);
+            posAttr.setXYZ(i, vx * n, vy * n, vz * n);
+        }
+        astGeo.computeVertexNormals();
+
+        const asteroidMesh = new THREE.Mesh(
+            astGeo,
+            new THREE.MeshStandardMaterial({ color: 0x291509, roughness: 0.85, emissive: 0xff4500, emissiveIntensity: 0.95 })
+        );
+        registerMesh(asteroidMesh);
+        asteroidGroup.add(asteroidMesh);
+
+        const plasmaHalo = new THREE.Mesh(
+            new THREE.SphereGeometry(13.5, 24, 24),
+            new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.28, wireframe: true })
+        );
+        asteroidGroup.add(plasmaHalo);
+        worldGroup.add(asteroidGroup);
+
+        // Antarctica Ross Ice Shelf & Sunken Wooden Ship (-95, 0, -45)
+        const rossIceGroup = new THREE.Group();
+        rossIceGroup.position.set(-95, 0, -45);
+
+        for (let i = 0; i < 10; i++) {
+            const h = 20 + (i % 3) * 15;
+            const glacier = new THREE.Mesh(new THREE.ConeGeometry(7.5 + (i % 2) * 3, h, 5), iceMat);
+            glacier.position.set((i - 4.5) * 7.5, h / 2, (i % 2) * 10 - 6);
+            registerMesh(glacier);
+            rossIceGroup.add(glacier);
+        }
+
+        const shipGroup = new THREE.Group();
+        shipGroup.position.set(0, 6.5, 10);
+        shipGroup.rotation.z = 0.28;
+        shipGroup.rotation.x = -0.15;
+
+        const hull = new THREE.Mesh(new THREE.BoxGeometry(16, 4.5, 5.5), darkStoneMat);
+        registerMesh(hull);
+        shipGroup.add(hull);
+
+        [-4.5, 0, 4.5].forEach((mx, idx) => {
+            const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.38, 14 - idx * 2, 8), sandstoneMat);
+            mast.position.set(mx, 8, 0);
+            registerMesh(mast);
+            shipGroup.add(mast);
+
+            const sail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 6, 4.5), iceMat);
+            sail.position.set(mx, 9, 0);
+            registerMesh(sail);
+            shipGroup.add(sail);
+        });
+        rossIceGroup.add(shipGroup);
+        worldGroup.add(rossIceGroup);
+
+        // --- REALM 2: Africa — Amboseli Wilderness & Mount Kilimanjaro (95, 0, -55) ---
+        const africaGroup = new THREE.Group();
+        africaGroup.position.set(95, 0, -55);
+
+        const savannaBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(36, 42, 3.5, 32),
+            new THREE.MeshStandardMaterial({ color: 0x4d381e, roughness: 0.9 })
+        );
+        savannaBase.position.y = 1.75;
+        registerMesh(savannaBase);
+        africaGroup.add(savannaBase);
+
+        const kiliSlope = new THREE.Mesh(new THREE.ConeGeometry(26, 44, 16), darkStoneMat);
+        kiliSlope.position.set(8, 23, -14);
+        registerMesh(kiliSlope);
+        africaGroup.add(kiliSlope);
+
+        const kiliSnow = new THREE.Mesh(new THREE.ConeGeometry(10.2, 16, 16), sacredWhiteMat);
+        kiliSnow.position.set(8, 37.5, -14);
+        registerMesh(kiliSnow);
+        africaGroup.add(kiliSnow);
+
+        const canopyMat = new THREE.MeshStandardMaterial({ color: 0x2d4c1e, roughness: 0.8 });
+        [[-16, 8], [-6, 14], [14, 10], [-20, -6]].forEach(([tx, tz]) => {
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 9, 7), darkStoneMat);
+            trunk.position.set(tx, 7.5, tz);
+            registerMesh(trunk);
+            africaGroup.add(trunk);
+
+            const canopy = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 4.2, 1.4, 9), canopyMat);
+            canopy.position.set(tx, 12.2, tz);
+            registerMesh(canopy);
+            africaGroup.add(canopy);
+        });
+        worldGroup.add(africaGroup);
+
+        // --- REALM 3: Ugrabhatti Cave (Vanaanchal) with Multi-Armed Kalika Maa (-105, 0, 30) ---
+        const caveGroup = new THREE.Group();
+        caveGroup.position.set(-105, 0, 30);
+
+        const caveArch = new THREE.Mesh(
+            new THREE.TorusGeometry(24, 6.5, 12, 24, Math.PI),
+            obsidianMat
+        );
+        caveArch.position.y = 2;
+        registerMesh(caveArch);
+        caveGroup.add(caveArch);
+
+        const cavePlinth = new THREE.Mesh(new THREE.CylinderGeometry(16, 19, 4, 24), obsidianMat);
+        cavePlinth.position.y = 2;
+        registerMesh(cavePlinth);
+        caveGroup.add(cavePlinth);
+
+        const caveShaft = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.5, 11, 48, 20, 1, true),
+            new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+        );
+        caveShaft.position.y = 24;
+        caveGroup.add(caveShaft);
+
+        // Fierce Multi-Armed Kalika Maa Deity Statue
+        const kaliStatue = new THREE.Group();
+        kaliStatue.position.set(0, 4, 0);
+
+        const lotusPedestal = new THREE.Mesh(
+            new THREE.CylinderGeometry(5.5, 6.8, 2.5, 16),
+            new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5, emissive: 0x450a0a })
+        );
+        lotusPedestal.position.y = 1.25;
+        registerMesh(lotusPedestal);
+        kaliStatue.add(lotusPedestal);
+
+        const kaliTorso = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.8, 9.5, 12), obsidianMat);
+        kaliTorso.position.y = 7.2;
+        registerMesh(kaliTorso);
+        kaliStatue.add(kaliTorso);
+
+        const kaliHead = new THREE.Mesh(new THREE.SphereGeometry(2.1, 16, 16), obsidianMat);
+        kaliHead.position.y = 13.5;
+        registerMesh(kaliHead);
+        kaliStatue.add(kaliHead);
+
+        const kaliCrown = new THREE.Mesh(new THREE.ConeGeometry(2.2, 4.5, 10), goldMat);
+        kaliCrown.position.y = 16.8;
+        registerMesh(kaliCrown);
+        kaliStatue.add(kaliCrown);
+
+        const redTongue = new THREE.Mesh(
+            new THREE.BoxGeometry(0.65, 1.4, 0.9),
+            new THREE.MeshBasicMaterial({ color: 0xff1e1e })
+        );
+        redTongue.position.set(0, 12.6, 2.0);
+        redTongue.rotation.x = 0.4;
+        kaliStatue.add(redTongue);
+
+        const garland = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.38, 10, 20), goldMat);
+        garland.position.set(0, 8.8, 0.8);
+        garland.rotation.x = 0.35;
+        registerMesh(garland);
+        kaliStatue.add(garland);
+
+        for (let a = 0; a < 8; a++) {
+            const side = a < 4 ? -1 : 1;
+            const idx = a % 4;
+            const armGroup = new THREE.Group();
+            armGroup.position.set(side * 2.0, 10.5 - idx * 0.8, 0);
+            armGroup.rotation.z = side * (0.45 + idx * 0.32);
+
+            const armMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.35, 6.5, 8), obsidianMat);
+            armMesh.position.y = 3.2;
+            registerMesh(armMesh);
+            armGroup.add(armMesh);
+
+            const weapon = new THREE.Mesh(new THREE.ConeGeometry(0.55, 3.8, 6), goldMat);
+            weapon.position.y = 7.2;
+            registerMesh(weapon);
+            armGroup.add(weapon);
+
+            kaliStatue.add(armGroup);
+        }
+
+        const kaliAura = new THREE.Mesh(new THREE.TorusGeometry(9.5, 0.55, 12, 36), goldMat);
+        kaliAura.position.set(0, 10.5, -1.8);
+        registerMesh(kaliAura);
+        kaliStatue.add(kaliAura);
+
+        caveGroup.add(kaliStatue);
+        worldGroup.add(caveGroup);
+
+        // --- REALM 4: Trethayuga — Lanka Nagaram (7200 BCE) Screenshot Scene (108, 0, 28) ---
+        const lankaGroup = new THREE.Group();
+        lankaGroup.position.set(108, 0, 28);
+
+        const lankaSunOrb = new THREE.Mesh(
+            new THREE.SphereGeometry(26, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.9 })
+        );
+        lankaSunOrb.position.set(18, 36, -32);
+        lankaGroup.add(lankaSunOrb);
+
+        const emeraldCloudHalo = new THREE.Mesh(
+            new THREE.RingGeometry(27, 46, 32),
+            new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide, transparent: true, opacity: 0.28 })
+        );
+        emeraldCloudHalo.position.set(18, 36, -33);
+        lankaGroup.add(emeraldCloudHalo);
+
+        // Foreground Jagged Battle Spire with Divine Archer aiming Cyan Celestial Arrow
+        const jaggedSpireGroup = new THREE.Group();
+        jaggedSpireGroup.position.set(-14, 0, 14);
+
+        for (let t = 0; t < 9; t++) {
+            const rBottom = 7.5 - t * 0.78;
+            const rTop = Math.max(0.6, rBottom - 0.8);
+            const seg = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, 4.2, 7), silhouetteGoldMat);
+            seg.position.y = t * 3.8 + 2.1;
+            seg.rotation.y = t * 0.5;
+            registerMesh(seg);
+            jaggedSpireGroup.add(seg);
+        }
+
+        const archerGroup = new THREE.Group();
+        archerGroup.position.set(0, 35.8, 0);
+        archerGroup.rotation.y = -0.45;
+
+        const archerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 3.6, 8), obsidianMat);
+        archerBody.position.y = 1.8;
+        registerMesh(archerBody);
+        archerGroup.add(archerBody);
+
+        const archerHead = new THREE.Mesh(new THREE.SphereGeometry(0.65, 10, 10), obsidianMat);
+        archerHead.position.y = 4.1;
+        registerMesh(archerHead);
+        archerGroup.add(archerHead);
+
+        const bowArc = new THREE.Mesh(
+            new THREE.TorusGeometry(2.4, 0.16, 8, 20, Math.PI),
+            goldMat
+        );
+        bowArc.position.set(1.2, 2.4, 0);
+        bowArc.rotation.z = -Math.PI / 2;
+        registerMesh(bowArc);
+        archerGroup.add(bowArc);
+
+        const cyanArrowShaft = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, 3.2, 8),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+        );
+        cyanArrowShaft.rotation.z = Math.PI / 2;
+        cyanArrowShaft.position.set(1.6, 2.4, 0);
+        archerGroup.add(cyanArrowShaft);
+
+        const cyanArrowGlow = new THREE.Mesh(
+            new THREE.SphereGeometry(0.58, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0x00ffff })
+        );
+        cyanArrowGlow.position.set(3.1, 2.4, 0);
+        archerGroup.add(cyanArrowGlow);
+
+        const arrowPointLight = new THREE.PointLight(0x00ffff, 6, 25);
+        arrowPointLight.position.set(3.1, 2.4, 0);
+        archerGroup.add(arrowPointLight);
+
+        jaggedSpireGroup.add(archerGroup);
+        lankaGroup.add(jaggedSpireGroup);
+
+        // Colossal Mid-Air Leaping Hanuman Silhouette Holding Sanjeevani Mountain Boulder
+        const hanumanLeapGroup = new THREE.Group();
+        hanumanLeapGroup.position.set(12, 24, -10);
+        hanumanLeapGroup.rotation.y = -0.35;
+
+        const hTorso = new THREE.Mesh(new THREE.BoxGeometry(7.5, 9.5, 4.5), silhouetteGoldMat);
+        registerMesh(hTorso);
+        hanumanLeapGroup.add(hTorso);
+
+        const hHead = new THREE.Mesh(new THREE.SphereGeometry(2.4, 14, 14), silhouetteGoldMat);
+        hHead.position.set(0, 6.2, 0.4);
+        registerMesh(hHead);
+        hanumanLeapGroup.add(hHead);
+
+        [-4.2, 4.2].forEach(sideX => {
+            const hArm = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.9, 9.5, 10), silhouetteGoldMat);
+            hArm.position.set(sideX, 6.8, 0);
+            hArm.rotation.z = sideX < 0 ? 0.28 : -0.28;
+            registerMesh(hArm);
+            hanumanLeapGroup.add(hArm);
+        });
+
+        const leftThigh = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.0, 7.5, 10), silhouetteGoldMat);
+        leftThigh.position.set(-2.6, -6.5, 1.5);
+        leftThigh.rotation.z = -0.35;
+        leftThigh.rotation.x = -0.45;
+        registerMesh(leftThigh);
+        hanumanLeapGroup.add(leftThigh);
+
+        const rightThigh = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.0, 8.2, 10), silhouetteGoldMat);
+        rightThigh.position.set(2.8, -7.2, -1.2);
+        rightThigh.rotation.z = 0.28;
+        rightThigh.rotation.x = 0.35;
+        registerMesh(rightThigh);
+        hanumanLeapGroup.add(rightThigh);
+
+        const hTail = new THREE.Mesh(
+            new THREE.TorusGeometry(6.5, 0.45, 8, 20, Math.PI * 0.85),
+            silhouetteGoldMat
+        );
+        hTail.position.set(-5.5, -1.5, -1.5);
+        hTail.rotation.z = 0.8;
+        registerMesh(hTail);
+        hanumanLeapGroup.add(hTail);
+
+        const boulderGeo = new THREE.DodecahedronGeometry(7.2, 1);
+        boulderGeo.scale(1.45, 0.82, 1.05);
+        const mountainBoulder = new THREE.Mesh(boulderGeo, silhouetteGoldMat);
+        mountainBoulder.position.set(0, 13.2, 0);
+        mountainBoulder.rotation.z = -0.12;
+        registerMesh(mountainBoulder);
+        hanumanLeapGroup.add(mountainBoulder);
+
+        lankaGroup.add(hanumanLeapGroup);
+
+        const lankaCliff = new THREE.Mesh(new THREE.BoxGeometry(18, 22, 18), darkStoneMat);
+        lankaCliff.position.set(-28, 11, -12);
+        registerMesh(lankaCliff);
+        lankaGroup.add(lankaCliff);
+
+        const lankaPalace = new THREE.Mesh(new THREE.BoxGeometry(14, 8, 14), sandstoneMat);
+        lankaPalace.position.set(-28, 26, -12);
+        registerMesh(lankaPalace);
+        lankaGroup.add(lankaPalace);
+
+        worldGroup.add(lankaGroup);
+
+        // --- REALM 5: Vaaranaasi Ghats, Sky-Beam & Lord Shiva Riding Galloping Nandi Bull ---
+        function createKashiShikharaTemple(x, y, z, scale) {
+            const temple = new THREE.Group();
+            temple.position.set(x, y, z);
+            temple.scale.setScalar(scale);
+
+            const plinth = new THREE.Mesh(new THREE.BoxGeometry(16, 5, 16), darkStoneMat);
+            plinth.position.y = 2.5;
+            registerMesh(plinth);
+            temple.add(plinth);
+
+            const hall = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 12), sandstoneMat);
+            hall.position.y = 8.5;
+            registerMesh(hall);
+            temple.add(hall);
+
+            for (let i = 0; i < 7; i++) {
+                const w = 10.5 - i * 1.25;
+                const tier = new THREE.Mesh(new THREE.BoxGeometry(w, 2.6, w), sandstoneMat);
+                tier.position.y = 13.3 + i * 2.5;
+                registerMesh(tier);
+                temple.add(tier);
+            }
+
+            const kalash = new THREE.Mesh(new THREE.ConeGeometry(1.3, 4.5, 12), goldMat);
+            kalash.position.y = 32.5;
+            registerMesh(kalash);
+            temple.add(kalash);
+
+            return temple;
+        }
+
+        for (let step = 0; step < 9; step++) {
+            const stepMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(150, 1.4, 38 - step * 3.2),
+                step % 2 === 0 ? sandstoneMat : darkStoneMat
+            );
+            stepMesh.position.set(0, step * 1.4 + 0.7, -28 - step * 1.6);
+            registerMesh(stepMesh);
+            worldGroup.add(stepMesh);
+        }
+
+        [
+            { x: -52, y: 12, z: -44, s: 1.1 },
+            { x: -26, y: 13, z: -48, s: 1.3 },
+            { x: 0,   y: 14, z: -52, s: 1.75 },
+            { x: 26,  y: 13, z: -48, s: 1.3 },
+            { x: 52,  y: 12, z: -44, s: 1.1 }
+        ].forEach(cfg => worldGroup.add(createKashiShikharaTemple(cfg.x, cfg.y, cfg.z, cfg.s)));
+
+        // Manikarnika Celestial Cyan Sky-Beam
+        const beamGroup = new THREE.Group();
+        beamGroup.position.set(0, 0, 10);
+        const innerBeam = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.6, 3.2, 170, 24, 1, true),
+            new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+        );
+        innerBeam.position.y = 85;
+        beamGroup.add(innerBeam);
+
+        const outerBeam = new THREE.Mesh(
+            new THREE.CylinderGeometry(4.8, 9.5, 170, 24, 1, true),
+            new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
+        );
+        outerBeam.position.y = 85;
+        beamGroup.add(outerBeam);
+
+        const shockRings = [];
+        for (let r = 0; r < 3; r++) {
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(4 + r * 4, 5.2 + r * 4, 48),
+                new THREE.MeshBasicMaterial({ color: 0x22d3ee, side: THREE.DoubleSide, transparent: true, opacity: 0.75 })
+            );
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.35;
+            beamGroup.add(ring);
+            shockRings.push(ring);
+        }
+        worldGroup.add(beamGroup);
+
+        // Articulated Lord Shiva Riding the Galloping White Nandi Bull with Blazing Trishul
+        const heroArenaPedestal = new THREE.Mesh(new THREE.CylinderGeometry(16, 20, 3.6, 32), darkStoneMat);
+        heroArenaPedestal.position.set(0, 1.8, 44);
+        registerMesh(heroArenaPedestal);
+        worldGroup.add(heroArenaPedestal);
+
+        const shivaNandiMount = new THREE.Group();
+        shivaNandiMount.position.set(0, 3.6, 44);
+        worldGroup.add(shivaNandiMount);
+
+        const nandiBodyGroup = new THREE.Group();
+        shivaNandiMount.add(nandiBodyGroup);
+
+        const nandiTorso = new THREE.Mesh(new THREE.BoxGeometry(5.8, 5.2, 11.2), sacredWhiteMat);
+        nandiTorso.position.set(0, 6.2, 0);
+        registerMesh(nandiTorso);
+        nandiBodyGroup.add(nandiTorso);
+
+        const nandiHump = new THREE.Mesh(new THREE.SphereGeometry(3.1, 18, 18), sacredWhiteMat);
+        nandiHump.scale.set(0.95, 1.35, 1.15);
+        nandiHump.position.set(0, 9.6, 2.4);
+        registerMesh(nandiHump);
+        nandiBodyGroup.add(nandiHump);
+
+        const nandiCaparison = new THREE.Mesh(new THREE.BoxGeometry(6.3, 3.4, 5.8), goldMat);
+        nandiCaparison.position.set(0, 6.8, -0.6);
+        registerMesh(nandiCaparison);
+        nandiBodyGroup.add(nandiCaparison);
+
+        const nandiHeadGroup = new THREE.Group();
+        nandiHeadGroup.position.set(0, 8.2, 6.8);
+        const nandiHeadMesh = new THREE.Mesh(new THREE.BoxGeometry(3.8, 3.8, 5.0), sacredWhiteMat);
+        registerMesh(nandiHeadMesh);
+        nandiHeadGroup.add(nandiHeadMesh);
+
+        [-1, 1].forEach(side => {
+            const horn = new THREE.Mesh(new THREE.ConeGeometry(0.68, 4.8, 12), goldMat);
+            horn.position.set(side * 2.4, 2.4, -0.2);
+            horn.rotation.z = -side * 0.45;
+            horn.rotation.x = 0.35;
+            registerMesh(horn);
+            nandiHeadGroup.add(horn);
+        });
+        nandiBodyGroup.add(nandiHeadGroup);
+
+        function createNandiLeg(x, z) {
+            const pivot = new THREE.Group();
+            pivot.position.set(x, 4.8, z);
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(1.4, 5.2, 1.4), sacredWhiteMat);
+            leg.position.y = -2.2;
+            registerMesh(leg);
+            pivot.add(leg);
+
+            const hoof = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 0.9, 10), goldMat);
+            hoof.position.y = -4.6;
+            registerMesh(hoof);
+            pivot.add(hoof);
+
+            nandiBodyGroup.add(pivot);
+            return pivot;
+        }
+        const legFL = createNandiLeg(-2.1, 4.4);
+        const legFR = createNandiLeg(2.1, 4.4);
+        const legBL = createNandiLeg(-2.1, -4.4);
+        const legBR = createNandiLeg(2.1, -4.4);
+
+        // Sculpted Lord Shiva Astride Nandi
+        const lordShivaGroup = new THREE.Group();
+        lordShivaGroup.position.set(0, 8.6, -0.6);
+        nandiBodyGroup.add(lordShivaGroup);
+
+        [-1, 1].forEach(side => {
+            const sLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.7, 5.2, 10), tigerSkinMat);
+            sLeg.position.set(side * 3.3, -1.2, 0.6);
+            sLeg.rotation.z = side * 0.35;
+            sLeg.rotation.x = -0.3;
+            registerMesh(sLeg);
+            lordShivaGroup.add(sLeg);
+        });
+
+        const shivaPelvis = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.3, 2.4, 12), tigerSkinMat);
+        shivaPelvis.position.y = 1.0;
+        registerMesh(shivaPelvis);
+        lordShivaGroup.add(shivaPelvis);
+
+        const shivaTorso = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 1.9, 5.8, 12), shivaSkinMat);
+        shivaTorso.position.y = 4.6;
+        registerMesh(shivaTorso);
+        lordShivaGroup.add(shivaTorso);
+
+        const rudrakshaMala = new THREE.Mesh(new THREE.TorusGeometry(1.85, 0.32, 10, 20), goldMat);
+        rudrakshaMala.position.set(0, 7.2, 0.2);
+        rudrakshaMala.rotation.x = Math.PI / 2 + 0.25;
+        registerMesh(rudrakshaMala);
+        lordShivaGroup.add(rudrakshaMala);
+
+        const shivaHead = new THREE.Mesh(new THREE.SphereGeometry(1.65, 16, 16), shivaSkinMat);
+        shivaHead.position.y = 8.9;
+        registerMesh(shivaHead);
+        lordShivaGroup.add(shivaHead);
+
+        const jataBun = new THREE.Mesh(new THREE.SphereGeometry(1.25, 14, 14), darkStoneMat);
+        jataBun.position.set(0, 10.6, -0.2);
+        registerMesh(jataBun);
+        lordShivaGroup.add(jataBun);
+
+        const crescentMoon = new THREE.Mesh(
+            new THREE.TorusGeometry(0.95, 0.2, 10, 20, Math.PI * 1.15),
+            sacredWhiteMat
+        );
+        crescentMoon.position.set(1.1, 10.7, 0.5);
+        crescentMoon.rotation.z = 0.6;
+        registerMesh(crescentMoon);
+        lordShivaGroup.add(crescentMoon);
+
+        const thirdEye = new THREE.Mesh(
+            new THREE.BoxGeometry(0.22, 0.65, 0.25),
+            new THREE.MeshBasicMaterial({ color: 0xffaa00 })
+        );
+        thirdEye.position.set(0, 9.3, 1.58);
+        lordShivaGroup.add(thirdEye);
+
+        const shivaLeftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.5, 4.8, 10), shivaSkinMat);
+        shivaLeftArm.position.set(-2.9, 5.2, 1.8);
+        shivaLeftArm.rotation.x = 0.85;
+        shivaLeftArm.rotation.z = 0.35;
+        registerMesh(shivaLeftArm);
+        lordShivaGroup.add(shivaLeftArm);
+
+        const shivaRightArmPivot = new THREE.Group();
+        shivaRightArmPivot.position.set(2.8, 6.4, 0.5);
+        lordShivaGroup.add(shivaRightArmPivot);
+
+        const shivaRightArm = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.55, 5.2, 10), shivaSkinMat);
+        shivaRightArm.position.set(0.8, 1.2, 1.4);
+        shivaRightArm.rotation.x = -0.55;
+        shivaRightArm.rotation.z = -0.35;
+        registerMesh(shivaRightArm);
+        shivaRightArmPivot.add(shivaRightArm);
+
+        // Blazing Golden Trishul in Lord Shiva's Right Hand
+        const heldTrishul = new THREE.Group();
+        heldTrishul.position.set(1.4, 2.2, 2.6);
+        heldTrishul.rotation.x = 0.18;
+
+        const trishulShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 22, 14), goldMat);
+        trishulShaft.position.y = 4.0;
+        registerMesh(trishulShaft);
+        heldTrishul.add(trishulShaft);
+
+        const centerBlade = new THREE.Mesh(new THREE.ConeGeometry(0.75, 5.5, 12), goldMat);
+        centerBlade.position.y = 17.2;
+        registerMesh(centerBlade);
+        heldTrishul.add(centerBlade);
+
+        [-1, 1].forEach(side => {
+            const outerProng = new THREE.Mesh(
+                new THREE.TorusGeometry(2.4, 0.32, 10, 20, Math.PI * 0.78),
+                goldMat
+            );
+            outerProng.position.set(side * 1.2, 14.8, 0);
+            outerProng.rotation.z = side === 1 ? -0.4 : 1.15;
+            registerMesh(outerProng);
+            heldTrishul.add(outerProng);
+
+            const prongTip = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.5, 10), goldMat);
+            prongTip.position.set(side * 2.8, 16.8, 0);
+            registerMesh(prongTip);
+            heldTrishul.add(prongTip);
+        });
+
+        const damaruMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.4, 1.9, 12), sandstoneMat);
+        damaruMesh.position.set(0, 11.2, 0);
+        registerMesh(damaruMesh);
+        heldTrishul.add(damaruMesh);
+
+        const clothGeo = new THREE.PlaneGeometry(7.2, 2.6, 16, 4);
+        const clothMesh = new THREE.Mesh(clothGeo, saffronMat);
+        clothMesh.position.set(3.8, 11.0, 0);
+        registerMesh(clothMesh, false);
+        heldTrishul.add(clothMesh);
+
+        shivaRightArmPivot.add(heldTrishul);
+
+        // --- REALM 6: Grand Finale Monument ("VĀRANĀSI" & "🔱 JAI BABU 🔱") (Z = +96) ---
+        const finaleGroup = new THREE.Group();
+        finaleGroup.position.set(0, 0, 96);
+
+        const earthArc = new THREE.Mesh(
+            new THREE.SphereGeometry(68, 48, 32),
+            new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4, metalness: 0.3, emissive: 0x0369a1, emissiveIntensity: 0.7 })
+        );
+        earthArc.position.set(0, -54, 12);
+        registerMesh(earthArc);
+        finaleGroup.add(earthArc);
+
+        const monumentPedestal = new THREE.Mesh(new THREE.BoxGeometry(56, 5, 10), darkStoneMat);
+        monumentPedestal.position.set(0, 2.5, 0);
+        registerMesh(monumentPedestal);
+        finaleGroup.add(monumentPedestal);
+
+        const varanasiTex = createMonumentBannerTexture('VĀRANĀSI', "SS RAJAMOULI'S GLOBETROTTER", false);
+        const varanasiFrontMat = new THREE.MeshStandardMaterial({ map: varanasiTex, roughness: 0.25, metalness: 0.75, emissive: 0x331a00 });
+        const varanasiSlab = new THREE.Mesh(
+            new THREE.BoxGeometry(46, 11.5, 3.2),
+            [goldMat, goldMat, goldMat, goldMat, varanasiFrontMat, varanasiFrontMat]
+        );
+        varanasiSlab.position.set(0, 11.5, 0);
+        registerMesh(varanasiSlab);
+        finaleGroup.add(varanasiSlab);
+
+        const jaiBabuTex = createMonumentBannerTexture('🔱 JAI BABU 🔱', 'SUPERSTAR MAHESH BABU • #TIMETROTTER', true);
+        const jaiBabuFrontMat = new THREE.MeshStandardMaterial({ map: jaiBabuTex, roughness: 0.2, metalness: 0.85, emissive: 0x451a03 });
+        const jaiBabuSlab = new THREE.Mesh(
+            new THREE.BoxGeometry(38, 9.5, 2.8),
+            [goldMat, goldMat, goldMat, goldMat, jaiBabuFrontMat, jaiBabuFrontMat]
+        );
+        jaiBabuSlab.position.set(0, 23.8, 0);
+        registerMesh(jaiBabuSlab);
+        finaleGroup.add(jaiBabuSlab);
+
+        worldGroup.add(finaleGroup);
+
+        // Update Telemetry Counters
+        document.getElementById('stat-verts').textContent = totalVerts.toLocaleString();
+        document.getElementById('stat-tris').textContent = Math.round(totalTris).toLocaleString();
+
+        // ============================================================================
+        // 6. RISING FIRE EMBERS & CELESTIAL PARTICLES
+        // ============================================================================
+        const emberCount = 1500;
+        const emberGeo = new THREE.BufferGeometry();
+        const emberPositions = new Float32Array(emberCount * 3);
+        for (let i = 0; i < emberCount; i++) {
+            emberPositions[i * 3] = (Math.random() - 0.5) * 340;
+            emberPositions[i * 3 + 1] = Math.random() * 130;
+            emberPositions[i * 3 + 2] = (Math.random() - 0.5) * 340;
+        }
+        emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPositions, 3));
+        const emberParticles = new THREE.Points(
+            emberGeo,
+            new THREE.PointsMaterial({ color: 0xff9933, size: 1.2, transparent: true, opacity: 0.88 })
+        );
+        scene.add(emberParticles);
+
+        // ============================================================================
+        // 7. 6-REALM CINEMATIC SPLINE CAMERA FLYTHROUGH & CONTROLS
+        // ============================================================================
+        const camPath = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-62, 65, -22), // 01: Asteroid Shambhavi & Ross Ice Ship
+            new THREE.Vector3(62, 26, -22),  // 02: Africa Amboseli & Mt. Kilimanjaro
+            new THREE.Vector3(-68, 22, 52),  // 03: Ugrabhatti Cave & Kalika Maa
+            new THREE.Vector3(76, 32, 62),   // 04: Lanka Nagaram (Archer & Leaping Hanuman)
+            new THREE.Vector3(18, 20, 72),   // 05: Vaaranaasi Ghats & Lord Shiva Riding Nandi
+            new THREE.Vector3(0, 19, 138),   // 06: VĀRANĀSI & "JAI BABU" Finale Monument
+            new THREE.Vector3(0, 22, 146)
+        ]);
+
+        const lookPath = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-90, 38, -58),
+            new THREE.Vector3(95, 18, -55),
+            new THREE.Vector3(-105, 14, 30),
+            new THREE.Vector3(108, 28, 24),
+            new THREE.Vector3(0, 15, 44),
+            new THREE.Vector3(0, 18, 96),
+            new THREE.Vector3(0, 19, 96)
+        ]);
+
+        const splineHelperLine = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(camPath.getPoints(160)),
+            new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.75 })
+        );
+        splineHelperLine.visible = false;
+        scene.add(splineHelperLine);
+
+        let flyProgress = 0.72;
+        let isFlying = true;
+        let nandiForwardCharge = true;
+        const totalFrames = 480;
+
+        const zoneNames = [
+            '01. ASTEROID SHAMBHAVI (2027 CE) & ANTARCTICA ICE SHIP',
+            '02. AFRICA — AMBOSELI WILDERNESS & MT. KILIMANJARO',
+            '03. UGRABHATTI CAVE (VANAANCHAL) — FIERCE KALIKA MAA',
+            '04. TRETHAYUGA — LANKA NAGARAM (ARCHER & HANUMAN LEAP)',
+            '05. VAARANAASI — LORD SHIVA RIDING GALLOPING NANDI BULL',
+            '06. SS RAJAMOULI\'S VĀRANĀSI • "JAI BABU" GRAND FINALE'
+        ];
+
+        function updateZoneBanner(t) {
+            const idx = t < 0.16 ? 0 : t < 0.32 ? 1 : t < 0.48 ? 2 : t < 0.66 ? 3 : t < 0.84 ? 4 : 5;
+            document.getElementById('zone-indicator').textContent = zoneNames[idx];
+        }
+
+        function applySplineCamera(t) {
+            const pos = camPath.getPointAt(t);
+            const look = lookPath.getPointAt(t);
+            camera.position.copy(pos);
+            controls.target.copy(look);
+            controls.update();
+            updateZoneBanner(t);
+            const frameNum = String(Math.floor(t * totalFrames)).padStart(3, '0');
+            document.getElementById('frame-counter').textContent = `${frameNum}/${totalFrames}f`;
+        }
+
+        window.setSkyMode = function(mode) {
+            ['night', 'lanka', 'day'].forEach(k => {
+                document.getElementById('sky-' + k).classList.toggle('active', k === mode);
+            });
+
+            if (mode === 'night') {
+                scene.background.setHex(0x030611);
+                scene.fog.color.setHex(0x050917);
+                ambientLight.color.setHex(0x1e2b4d);
+                ambientLight.intensity = 1.15;
+                mainDirLight.color.setHex(0x8ab4f8);
+                mainDirLight.intensity = 2.2;
+                moonOrb.visible = true;
+                renderer.toneMappingExposure = 1.3;
+            } else if (mode === 'lanka') {
+                scene.background.setHex(0x281d04);
+                scene.fog.color.setHex(0x3a2a07);
+                ambientLight.color.setHex(0x84cc16);
+                ambientLight.intensity = 1.45;
+                mainDirLight.color.setHex(0xfbbf24);
+                mainDirLight.intensity = 3.6;
+                moonOrb.visible = false;
+                renderer.toneMappingExposure = 1.45;
+            } else if (mode === 'day') {
+                scene.background.setHex(0x38bdf8);
+                scene.fog.color.setHex(0x7dd3fc);
+                ambientLight.color.setHex(0xffffff);
+                ambientLight.intensity = 1.7;
+                mainDirLight.color.setHex(0xfffbeb);
+                mainDirLight.intensity = 3.2;
+                moonOrb.visible = false;
+                renderer.toneMappingExposure = 1.15;
+            }
+        };
+
+        window.toggleNandiChargeMode = function() {
+            nandiForwardCharge = !nandiForwardCharge;
+            const btn = document.getElementById('nandi-move-btn');
+            if (nandiForwardCharge) {
+                btn.textContent = '🐂 Mode: Forward Charge';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = '🐂 Mode: In-Place Gallop';
+                btn.classList.remove('active');
+                shivaNandiMount.position.set(0, 3.6, 44);
+            }
+        };
+
+        window.setRenderMode = function(mode) {
+            ['pbr', 'clay', 'hybrid', 'wire'].forEach(m => {
+                document.getElementById('mode-' + m).classList.toggle('active', m === mode);
+            });
+
+            originalMaterials.forEach((origMat, mesh) => {
+                if (mode === 'pbr') {
+                    mesh.material = origMat;
+                    if (mesh.userData.wireClone) mesh.userData.wireClone.visible = false;
+                } else if (mode === 'clay') {
+                    mesh.material = clayMaterial;
+                    if (mesh.userData.wireClone) mesh.userData.wireClone.visible = false;
+                } else if (mode === 'hybrid') {
+                    mesh.material = origMat;
+                    if (mesh.userData.wireClone) mesh.userData.wireClone.visible = true;
+                } else if (mode === 'wire') {
+                    mesh.material = pureWireMaterial;
+                    if (mesh.userData.wireClone) mesh.userData.wireClone.visible = false;
+                }
+            });
+
+            document.getElementById('stat-shaders').textContent =
+                mode === 'pbr' ? 'PBR_NIGHT' :
+                mode === 'clay' ? 'CLAY_SCULPT' :
+                mode === 'hybrid' ? 'CRITIC_WIRE+' : 'WIREFRAME';
+        };
+
+        window.toggleSplineHelper = function() {
+            splineHelperLine.visible = !splineHelperLine.visible;
+            const btn = document.getElementById('btn-spline');
+            btn.textContent = `Cam Spline Path: ${splineHelperLine.visible ? 'ON' : 'OFF'}`;
+            btn.classList.toggle('active', splineHelperLine.visible);
+        };
+
+        window.toggleFlythrough = function(forceState) {
+            isFlying = typeof forceState === 'boolean' ? forceState : !isFlying;
+            document.getElementById('fly-icon').textContent = isFlying ? '⏸' : '▶';
+            document.getElementById('fly-label').textContent = isFlying
+                ? '6-Realm Flythrough: ON'
+                : '6-Realm Flythrough: PAUSED';
+        };
+
+        window.scrubTimeline = function(val) {
+            toggleFlythrough(false);
+            flyProgress = parseFloat(val) / 1000;
+            applySplineCamera(flyProgress);
+        };
+
+        window.jumpToZone = function(zoneIdx) {
+            toggleFlythrough(false);
+            const stops = [0.03, 0.20, 0.38, 0.56, 0.74, 0.95];
+            flyProgress = stops[zoneIdx] !== undefined ? stops[zoneIdx] : 0.95;
+            document.getElementById('timeline-slider').value = Math.floor(flyProgress * 1000);
+            if (zoneIdx === 3) setSkyMode('lanka');
+            applySplineCamera(flyProgress);
+        };
+
+        // Hide/Show HUD for clean Twitter video screen recording
+        let hudVisible = true;
+        window.toggleHUD = function() {
+            hudVisible = !hudVisible;
+            const hud = document.getElementById('hud-root');
+            const unhideBtn = document.getElementById('unhide-btn');
+            hud.style.opacity = hudVisible ? '1' : '0';
+            hud.querySelectorAll('.hud-interactive').forEach(el => {
+                el.style.pointerEvents = hudVisible ? 'auto' : 'none';
+            });
+            document.querySelectorAll('.reticle-corner').forEach(el => {
+                el.style.opacity = hudVisible ? '1' : '0';
+            });
+            unhideBtn.classList.toggle('hidden', hudVisible);
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'h') window.toggleHUD();
+        });
+
+        // ============================================================================
+        // 8. ANIMATION LOOP
+        // ============================================================================
+        const clock = new THREE.Clock();
+        let lastFpsTime = performance.now();
+        let frameCount = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsed = clock.getElapsedTime();
+
+            frameCount++;
+            const now = performance.now();
+            if (now - lastFpsTime >= 500) {
+                document.getElementById('stat-fps').textContent = Math.min(60, Math.round((frameCount * 1000) / (now - lastFpsTime)));
+                frameCount = 0;
+                lastFpsTime = now;
+            }
+
+            // 1. Articulated Galloping & Riding Motion for Lord Shiva & White Nandi Bull
+            const gallopSpeed = elapsed * 11.5;
+            legFL.rotation.x = Math.sin(gallopSpeed) * 0.68;
+            legFR.rotation.x = Math.sin(gallopSpeed + 0.7) * 0.68;
+            legBL.rotation.x = -Math.sin(gallopSpeed + 0.35) * 0.65;
+            legBR.rotation.x = -Math.sin(gallopSpeed + 1.05) * 0.65;
+
+            nandiBodyGroup.position.y = Math.abs(Math.sin(gallopSpeed)) * 1.15;
+            nandiBodyGroup.rotation.x = Math.cos(gallopSpeed) * 0.09;
+            nandiHeadGroup.rotation.x = 0.22 + Math.sin(gallopSpeed * 1.2) * 0.16;
+
+            lordShivaGroup.rotation.x = -Math.cos(gallopSpeed) * 0.06;
+            shivaRightArmPivot.rotation.x = Math.sin(gallopSpeed * 0.5) * 0.15;
+
+            if (nandiForwardCharge) {
+                const zCharge = 22 + ((elapsed * 11) % 44);
+                shivaNandiMount.position.z = zCharge;
+                shivaFireLight.position.z = zCharge;
+            } else {
+                shivaNandiMount.position.z = 44;
+            }
+
+            // Wave Saffron Banner on Lord Shiva's Trishul
+            const clothPos = clothGeo.attributes.position;
+            for (let i = 0; i < clothPos.count; i++) {
+                const u = clothPos.getX(i);
+                clothPos.setZ(i, Math.sin(u * 0.95 - elapsed * 9) * 0.55);
+            }
+            clothPos.needsUpdate = true;
+
+            // 2. Lanka Nagaram: Floating Leaping Hanuman & Pulsing Cyan Arrow
+            hanumanLeapGroup.position.y = 24 + Math.sin(elapsed * 2.8) * 1.6;
+            cyanArrowGlow.scale.setScalar(1 + Math.sin(elapsed * 14) * 0.35);
+
+            // 3. Ugrabhatti Cave: Kalika Maa Rotating Golden Aura
+            kaliAura.rotation.z = elapsed * 0.8;
+
+            // 4. Asteroid Shambhavi Spin & Manikarnika Sky-Beam Shockwaves
+            asteroidMesh.rotation.x += 0.01;
+            asteroidMesh.rotation.y += 0.014;
+            plasmaHalo.rotation.y -= 0.018;
+
+            innerBeam.scale.setScalar(0.92 + Math.sin(elapsed * 6) * 0.12);
+            shockRings.forEach((ring, i) => {
+                const s = 1 + ((elapsed * 1.5 + i * 0.8) % 3.4);
+                ring.scale.setScalar(s);
+                ring.material.opacity = Math.max(0, 0.78 - (s - 1) * 0.24);
+            });
+
+            // 5. Rising Fire Embers
+            const ePos = emberGeo.attributes.position;
+            for (let i = 0; i < emberCount; i++) {
+                let y = ePos.getY(i) + 0.2;
+                if (y > 130) y = 0;
+                ePos.setY(i, y);
+            }
+            ePos.needsUpdate = true;
+
+            // 6. Advance 6-Realm Spline Flythrough
+            if (isFlying) {
+                flyProgress = (flyProgress + 0.0007) % 1.0;
+                document.getElementById('timeline-slider').value = Math.floor(flyProgress * 1000);
+                applySplineCamera(flyProgress);
+            } else {
+                controls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = function() {
+            applySplineCamera(flyProgress);
+            animate();
+        };
+    </script>
+</body>
+</html>
